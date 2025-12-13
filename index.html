@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Simulasi GPS Bergerak</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; }
+    #map { height: 100vh; }
+
+    .info-panel {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: white;
+      padding: 12px 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      z-index: 1000;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div class="info-panel">
+  <b>Informasi GPS</b><br>
+  Latitude : <span id="lat">-</span><br>
+  Longitude: <span id="lng">-</span><br>
+  Speed    : <span id="speed">-</span> km/h<br>
+  Time     : <span id="time">-</span>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+  const map = L.map('map').setView([0, 0], 2);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+  let lat, lng;
+  let track = [];
+
+  const marker = L.marker([0, 0]).addTo(map);
+  const polyline = L.polyline([], { color: 'blue' }).addTo(map);
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      lat = pos.coords.latitude;
+      lng = pos.coords.longitude;
+
+      map.setView([lat, lng], 16);
+      marker.setLatLng([lat, lng]);
+
+      track.push([lat, lng]);
+      polyline.setLatLngs(track);
+
+      document.getElementById('lat').innerText = lat.toFixed(6);
+      document.getElementById('lng').innerText = lng.toFixed(6);
+    },
+    () => {
+      alert('Lokasi tidak bisa diambil. Pastikan izin lokasi diaktifkan.');
+    }
+  );
+
+  setInterval(() => {
+    if (lat === undefined || lng === undefined) return;
+
+    lat += (Math.random() - 0.5) * 0.0005;
+    lng += (Math.random() - 0.5) * 0.0005;
+
+    marker.setLatLng([lat, lng]);
+    map.panTo([lat, lng]);
+
+    track.push([lat, lng]);
+    polyline.setLatLngs(track);
+
+    const speed = (Math.random() * 40 + 10).toFixed(1);
+    const now = new Date();
+
+    document.getElementById('lat').innerText = lat.toFixed(6);
+    document.getElementById('lng').innerText = lng.toFixed(6);
+    document.getElementById('speed').innerText = speed;
+    document.getElementById('time').innerText = now.toLocaleTimeString();
+
+    fetch('save_gps.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lat: lat,
+        lng: lng,
+        speed: speed
+      })
+    });
+
+  }, 5000);
+</script>
+
+</body>
+</html>
